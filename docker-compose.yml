@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:latest
+    container_name: nivii-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nivii_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  api:
+    build: api/.
+    container_name: nivii-api
+    depends_on:
+      - db
+    environment:
+      DB_NAME: nivii_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      OPENAI_KEY: ${OPENAI_KEY}
+    ports:
+      - "3000:3000"
+    restart: on-failure
+  frontend:
+    build:
+      context: ./front_end
+    container_name: nivii-frontend
+    ports:
+      - "8000:3000"
+    depends_on:
+      - api
+  csv_import:
+    build: ./jobs/csv_to_database
+    container_name: csv-import
+    depends_on:
+      - db
+    environment:
+      DB_NAME: nivii_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      CSV_FILE: data.csv
+      TABLE_NAME: sales_data
+    volumes:
+      - ./jobs/csv_to_database/data.csv:/app/data.csv
+    restart: on-failure
+volumes:
+  pgdata: 
